@@ -39,10 +39,10 @@ public class EchoClient {
 					hostName);
 			e.printStackTrace();
 			System.exit(1);
-		} catch (InterruptedException e){
+		} /*catch (InterruptedException e){
 			System.err.println("process error");
 			System.exit(1);
-		}
+		}*/
 	}
 
 }

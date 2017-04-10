@@ -29,7 +29,6 @@ public class EchoServer {
 			}
 	}
 }
-giugugi
 /*have java communicate with the shell, ie client says ls -l, need server side to run ls- l, return restults. 
 		run EchoServer as a service, just listenin. not always running, jsut waiting for a command on the port 
 		
