@@ -19,22 +19,26 @@ public class Requester {
 			out.flush();
 			in = new BufferedReader(new InputStreamReader(requestSocket.getInputStream()));
 			stdIn = new BufferedReader(new InputStreamReader(System.in));
-			//3. communicate with server
+			// 3. communicate with server
+			server_message = (String)in.readLine(); 
+			System.out.println("server> "+server_message);
+			sendMessage("Hello server");
+				
+			
 			do{
-				server_message = (String)in.readLine(); 
-				System.out.println("server> "+server_message);
-				sendMessage("Hello server");
 				
-				//figure out how this process should look, keep asking for more commands until bye? 
-				//for now, just accepts one command. maybe require to preface it with cmd.exe 
+				//keep asking for more commands until bye? 
 				System.out.println("what would you like to do");
-				String inputline = stdIn.readLine();
-				sendMessage(inputline);
-				
-				//sendMessage("list");
-				server_message = "bye";
-				sendMessage(server_message);
+				server_message = stdIn.readLine();  //input from client
+				sendMessage(server_message); //send it to server
+				String result;
+				while ((result=in.readLine())!=null && !result.equals("alldone")){  
+					System.out.println("server1> " + result);
+				}
+				System.out.println("done printing results");
 			}while(!server_message.equals("bye"));
+			
+			
 		}catch(UnknownHostException unknownHost){
 			System.err.println("unknown host");
 		}catch(IOException e){
@@ -51,7 +55,7 @@ public class Requester {
 		}
 	}
 	void sendMessage(String msg){
-		out.println(msg); //this sends the message to the server i think
+		out.println(msg); //this sends the message to the server
 		out.flush();
 		System.out.println("client1> "+msg); //this prints to our client command window
 	}
