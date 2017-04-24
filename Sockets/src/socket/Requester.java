@@ -2,6 +2,7 @@ package socket;
 import java.io.*;
 import java.net.*;
 public class Requester {
+	
 	Socket requestSocket;
 	PrintWriter out;
 	BufferedReader in;
