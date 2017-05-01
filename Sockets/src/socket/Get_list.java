@@ -15,22 +15,18 @@ public class Get_list {
 	ArrayList<String> go(){
 		ArrayList<String> servers=new ArrayList<String>(); 
 		String protocol="jdbc:derby:";
-		//String dbName = "/home/vivian/workspace/simple/MyDbTest";
 		String dbName="/home/vivian/git/Sockets/Sockets/ServerList";
-		ResultSet res=null;
-		Connection conn=null;
-		try{
-			Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
-			conn = DriverManager.getConnection(protocol + dbName);
+		
+		//Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+		try(	Connection conn = DriverManager.getConnection(protocol + dbName);){
 			System.out.println("connected to the DB");
-			Statement s; 
-			s=conn.createStatement();
+			try (Statement s=conn.createStatement(); 
 			//res=s.executeQuery("SELECT num, addr FROM derbyDB2");
-			res=s.executeQuery("SELECT name FROM Servers WHERE region='NW' ");
-			while (res.next()){
-				servers.add(res.getString(1)); //Int or String
+			ResultSet res=s.executeQuery("SELECT name FROM Servers WHERE region='NW' ");){
+				while (res.next()){
+					servers.add(res.getString(1)); //Int or String
+				}
 			}
-			
 		}
 		catch (SQLException sqle)
 	    {
@@ -39,16 +35,7 @@ public class Get_list {
 		catch (Exception e){
 			e.printStackTrace();
 		}
-		finally{
-			try{
-			res.close(); 
-			conn.close();
-			}
-			catch (SQLException e){
-				e.printStackTrace(System.out);
-			}
-		}
-		
+
 		return servers;
 	}
 	
