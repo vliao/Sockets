@@ -1,4 +1,9 @@
 package socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
@@ -30,24 +35,52 @@ static ArrayList<String> failures=new ArrayList<String>();;
 			System.out.println("connection closed");
 		}
 		catch(Exception e){
-			e.printStackTrace(System.out);
+			System.out.println("connection failed");
 			failures.add(server); 
 		}
 		
 	}
+	
+	List<String[]> getlist(String region, String env){
+		List<String[]> servers=new ArrayList<String[]>(); 
+		String protocol="jdbc:derby:";
+		String dbName="/home/vivian/git/Sockets/Sockets/ServerList";
+		
+		String query= "SELECT use, name FROM Servers_long WHERE region=" + region +" AND env=" + env; 
+		
+		//Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+		try(	Connection conn = DriverManager.getConnection(protocol + dbName);)
+		{
+			System.out.println("connected to the DB");
+			try (Statement s=conn.createStatement(); 
+					ResultSet res=s.executeQuery(query);)
+			{
+				while (res.next()){
+					String [] a = {res.getString("use"), res.getString("name")};
+					servers.add(a); 
+				}
+			}
+		}
+		catch (SQLException sqle)
+	    {
+	        sqle.printStackTrace(System.out);
+	    }
+		catch (Exception e){
+			e.printStackTrace();
+		}
+
+		return servers;
+	}
+	
 	public static void main(String args[]){
 		Connection_check tryit = new Connection_check();
-	  //  String arglist[] = {"vivian", "192.168.128.135"};
-	    //write a function to get the filtered list from dB
-	    //call run on every server
-	    //
-		//tryit.run(arglist);
-	//	System.out.println("1: " + failures);
 		
-		Get_list a = new Get_list(); 
-		List<String[]> serverlist = a.go();
+		List<String[]> serverlist = tryit.getlist("'SW'", "'PROD'");
 		for (int i=0; i<serverlist.size(); i++){
-			tryit.run(serverlist.get(i));
+			System.out.println("server:" + serverlist.get(i)[1]);
+			//tryit.run(serverlist.get(i));
 		}
+		
+		System.out.println("failed: " + failures); 
 	}
 }
