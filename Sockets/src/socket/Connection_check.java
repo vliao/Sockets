@@ -8,8 +8,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
-import com.jcraft.jsch.ConfigRepository.Config;
 import com.jcraft.jsch.*;
+import com.jcraft.jsch.JSchException;
 
 public class Connection_check {
 	private JSch ssh_object;
@@ -41,7 +41,7 @@ static ArrayList<String> failures=new ArrayList<String>();
 		this.source_id = source_id;
 		this.source_server = source_server;
 	}
-	
+	/*
 	public void startNewSession(){
 		try{
 			session = ssh_object.getSession(source_id, source_server, portNumber);
@@ -49,7 +49,7 @@ static ArrayList<String> failures=new ArrayList<String>();
 			config.put("StrictHostKeyChecking", "no");
 			//config.put("PreferedAuthentications", "publickey");
 			session.setConfig(config);
-		/*	Config thisHostConfig = configRepository.getConfig(source_server);
+			Config thisHostConfig = configRepository.getConfig(source_server);
 			
 			if (thisHostConfig != null){
 				String[] identityFile = thisHostConfig.getValues("IdentityFile");
@@ -60,7 +60,7 @@ static ArrayList<String> failures=new ArrayList<String>();
 				} else {
 					ssh_object.addIdentity("~/.ssh/id_rsa");
 				}
-			}*/
+			}
 			ssh_object.addIdentity("~/.ssh/id_rsa");
 			session.connect(timeout);
 			System.out.println("connection to " + source_server + " success");
@@ -69,39 +69,19 @@ static ArrayList<String> failures=new ArrayList<String>();
 			e.printStackTrace();
 			failures.add(source_server);
 		}
-	}
-/*	
-	void test(String[] args) { 
-		user=args[0];
-		host=args[1];
-		port=22;
-		String server=user+"@"+host;
-		System.out.println(server);
-		try{
-			JSch jsch= new JSch();
-			jsch.addIdentity("~/.ssh/id_rsa");
-			Session session=jsch.getSession(user,host,port);
-			session.setConfig("PreferredAuthentications", "publickey");
-			session.setConfig("StrictHostKeyChecking", "no");
-			System.out.println("Establishing Connection to "+user + "@"+host);
-			session.connect();
-			System.out.println("connection established");
-			session.disconnect();
-			System.out.println("connection closed");
-		}
-		catch(Exception e){
-			System.out.println("connection failed");
-			failures.add(server); 
-		}
-		
-	}
-*/
+	}*/
+
 	// get the list of servers that you want to test from your db
-	public static List<String[]> getlist(String region, String env, String proto){
+	public static List<String[]> getlist(String region, String env, String comp){
 		List<String[]> servers=new ArrayList<String[]>(); 
 		String protocol="jdbc:derby:";
-		String dbName="/home/vivian/git/Sockets/Sockets/ServerList";
-		String query= "SELECT id, server FROM Servers WHERE region=" + region +" AND env=" +env+ "AND protocol="+proto ; 
+		String dbName = "/home/vivian/git/Sockets/Sockets/ServerList";
+		String query="SELECT id, server, protocol FROM Servers WHERE region="+region+"AND env="+env+" AND component="+comp;
+				
+	/*String protocol="jdbc:sqlite:";
+		String dbName="/home/vivian/Desktop/kpccmt/db/development.sqlite3";
+		String query= "SELECT source_name, source_server FROM connections WHERE id=1" +" AND component_id=1"; 
+		*/
 		try(	Connection conn = DriverManager.getConnection(protocol + dbName);)
 		{
 			System.out.println("connected to the list DB");
@@ -109,7 +89,8 @@ static ArrayList<String> failures=new ArrayList<String>();
 					ResultSet res=s.executeQuery(query);)
 			{
 				while (res.next()){
-					String [] a = {res.getString("id"), res.getString("server")};
+					String [] a = {res.getString("id"), res.getString("server"), res.getString("protocol")}; //source_name, source_server
+					//String [] a = {res.getString("source_name"), res.getString("source_server")};
 					servers.add(a); 
 				}
 			}
@@ -120,13 +101,13 @@ static ArrayList<String> failures=new ArrayList<String>();
                 if (( (se.getErrorCode() == 50000)
                         && ("XJ015".equals(se.getSQLState()) ))) {
                     // we got the expected exception
-                    System.out.println("Derby shut down normally");
-                    // Note that for single database shutdown, the expected
+                    System.out.println("Database shut down normally");
+                    // Note that for single databasejavhutdown, the expected
                     // SQL state is "08006", and the error code is 45000.
                 } else {
                     // if the error code or SQLState is different, we have
                     // an unexpected exception (shutdown failed)
-                    System.err.println("Derby did not shut down normally");
+                    System.err.println("Database did not shut down normally");
                 }
             }
 		} 
@@ -135,22 +116,22 @@ static ArrayList<String> failures=new ArrayList<String>();
 	    {
 	        sqle.printStackTrace(System.out);
 	    }
-		catch (Exception e){
+		catch (Exception e){ 
 			e.printStackTrace();
 		}
 
 		return servers;
 	}
 	
-	public static void main(String args[]){
+	/*public static void main(String args[]){
 		
-		List<String[]> serverlist = getlist("'NW'", "'PROD'", "'SSH'");
+		List<String[]> serverlist = getlist("'NW'", "'PROD'", "'NEDI'");
 		for (int i=0; i<serverlist.size(); i++){
-			System.out.println("user: " + serverlist.get(i)[0] + "server: " + serverlist.get(i)[1]); //see what get list is giving you
-			Connection_check checker = new Connection_check(serverlist.get(i)[0],serverlist.get(i)[1] ); //try the connection
-			checker.startNewSession(); 
+			System.out.println("user: " + serverlist.get(i)[0] + "    server: " + serverlist.get(i)[1]);//+"  protocol: "+serverlist.get(i)[2]); //see what get list is giving you
+			//Connection_check checker = new Connection_check(serverlist.get(i)[0],serverlist.get(i)[1] ); //try the connection
+			//checker.startNewSession(); 
 		}
 		
 		System.out.println("failed: " + failures); 
-	}
+	}*/
 }

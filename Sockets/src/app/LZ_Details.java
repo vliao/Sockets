@@ -14,6 +14,8 @@ import java.util.List;
 
 
 public class LZ_Details {
+	private String Source_ID;
+	private String Source_Server;
 	private String Target_ID;
 	private String Target_Server;
 	private String Type;
@@ -36,6 +38,23 @@ public class LZ_Details {
 		}
 	}
 
+	public LZ_Details(String suser, String shost,String user, String host, String protocol, String LZ1, String LZ2, String desc) {
+		Source_ID  = suser;
+		Source_Server = shost; 
+		Target_ID = user;
+		Target_Server = host;
+		Type = protocol;
+		Source_LZ = LZ1;
+		Target_LZ = LZ2;
+		Description = desc; 
+	}
+	public String getSourceID() {
+		return Source_ID;
+	}
+	
+	public String getSourceServer() {
+		return Source_Server;
+	}
 	public String getTargetID() {
 		return Target_ID;
 	}
