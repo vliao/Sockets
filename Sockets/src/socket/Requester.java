@@ -1,6 +1,7 @@
 package socket;
 import java.io.*;
 import java.net.*;
+import java.net.InetAddress;
 public class Requester {
 	
 	Socket requestSocket;
@@ -10,10 +11,12 @@ public class Requester {
 	String server_message;
 	String client_message;
 	Requester(){};
+	InetAddress server= null; 
 	void run(){
 		try{
 			//1. create socket
-			requestSocket = new Socket("localhost", 9999);
+			System.out.println("server" + server);
+			requestSocket = new Socket(server, 9999);
 			System.out.println("connected to localhost port 9999");
 			//2. get IO streams
 			out = new PrintWriter(requestSocket.getOutputStream(),true);
@@ -43,7 +46,7 @@ public class Requester {
 		}catch(UnknownHostException unknownHost){
 			System.err.println("unknown host");
 		}catch(IOException e){
-			e.printStackTrace();
+			System.out.println("IOException caught!");
 		}
 		finally{
 			try{ 
@@ -58,10 +61,18 @@ public class Requester {
 	void sendMessage(String msg){
 		out.println(msg); //this sends the message to the server
 		out.flush();
-		System.out.println("client1> "+msg); //this prints to our client command window
+		System.out.println("client> "+msg); //this prints to our own terminal, requester.
+	}
+	void setInetAddress (String address){
+		try {
+			server = InetAddress.getByName(address);
+		} catch(UnknownHostException e){
+			e.printStackTrace();
+		}
 	}
 	public static void main(String args[]){
 		Requester client = new Requester();
+		client.setInetAddress(args[0]);
 		client.run();
 	}
 }

@@ -15,7 +15,7 @@ public class Provider {
 			//1. create a server socket
 			providerSocket = new ServerSocket(portNumber);
 			//2. wait for connection
-			System.out.println("Waiting for connection");
+			System.out.println("Waiting for connection on " + portNumber);// + " on " + providerSocket.getInetAddress());
 			connection = providerSocket.accept();
 			//3.get I/O streams
 			out = new PrintWriter(connection.getOutputStream(),true);
@@ -24,26 +24,13 @@ public class Provider {
 			sendMessage("Connection Successful");
 			//4. communicate with client via IO stream
 			//initial hello sequence
-			message=(String)in.readLine();
+			message=(String)in.readLine();  //receiving out.println(msg) of requester here. 
 			System.out.println("client> " +message);
 			do {
 					//now communication loop, executing commands 
 					message=(String)in.readLine();
 					System.out.println("client> " +message);
 					
-					/*if (message.equals("list")) { //or whatever your cue is to execute command line commands on this server
-						System.out.println("executing a command");
-						ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/c", "cd");
-						builder.redirectErrorStream(true);
-						java.lang.Process p = builder.start(); 
-						BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
-						String line;
-						 while ((line=r.readLine())!=null){
-					            sendMessage(line);
-					            
-					        }
-						r.close();
-					}*/
 					if (message.equals("bye")){ //if client says bye, respond bye as well. 
 						sendMessage("bye");
 					}
@@ -51,9 +38,15 @@ public class Provider {
 					//either bye or a command
 					else {
 							System.out.println("executing a command");
-							ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/c", message);
-							builder.redirectErrorStream(true);
-							java.lang.Process p = builder.start(); 
+							
+							/*  for windows
+							 * ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/c", message);
+							 builder.redirectErrorStream(true);
+							java.lang.Process p = builder.start();
+							*/
+							Process p  = Runtime.getRuntime().exec(message);
+							p.waitFor();
+							
 							BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
 							String line;
 							while ((line=r.readLine())!=null){
@@ -69,9 +62,11 @@ public class Provider {
 		} catch (IOException e){
 			System.out.println("Exception caught when trying to listen on port " + portNumber + 
 					" or listening for a connection");
+		} catch (InterruptedException e){
+			System.out.println("Exception caught when executing " + message);
 		}
 		finally{
-			try{
+			try{ //when client says bye, close these  
 				in.close();
 				out.close();
 				providerSocket.close();
@@ -82,9 +77,9 @@ public class Provider {
 		}
 	}	
 	void sendMessage(String msg){
-		out.println(msg); //send to client, sits in clients inputstream, read with in.readLine
+		out.println(msg); //send to client, sits in clients inputstream, read with in.readLine. prints in requester terminal
 		out.flush();
-		System.out.println("server> " + msg);	
+		//System.out.println("server> " + msg);	//this prints in provider terminal
 	}
 	public static void main(String args[]){
 		Provider server = new Provider();
@@ -94,10 +89,3 @@ public class Provider {
 	}
 	
 }
-/*have java communicate with the shell, ie client says ls -l, need server side to run ls- l, return results. 
-		run EchoServer as a service, just listenin. not always running, jsut waiting for a command on the port 
-	
-	try java service wrapper
-	
-		*
-client server basic app copied from http://stackoverflow.com/questions/1776457/java-client-server-application-with-sockets */
