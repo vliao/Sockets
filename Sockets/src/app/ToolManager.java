@@ -1,14 +1,11 @@
 package app;
 
-import com.jcraft.jsch.*;
-import com.jcraft.jsch.ConfigRepository.Config;
-
 import java.io.InputStream;	//For reading command line output
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.Paths; 
 import java.io.BufferedReader;
 import java.io.IOException;
 
@@ -36,11 +33,12 @@ public class ToolManager {
 // For ToolManager to talk to ThreadManager to create a thread for the upcoming command execution
 	public boolean executeCommand(String command) {
 		try {
-			Process p = Runtime.getRuntime().exec(command);
+			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
+			builder.redirectErrorStream(true);
+			Process p = builder.start();
 			p.waitFor();
 			exitStatus = p.exitValue(); //will return 0 for normal termination (success)
 			printStream(p.getInputStream(), "OUTPUT");
-			printStream(p.getErrorStream(), "ERROR");
 			
 			if (exitStatus == 0 ){
 				 return true;
@@ -49,38 +47,15 @@ public class ToolManager {
 				System.out.println("command failed");
 				return false;
 			}
-		} catch (IOException | InterruptedException e) {
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e){
 			e.printStackTrace();
 			return false;
 		}
+		
 	}
-	/*public boolean execute(String command){
-		try {
-			ChannelExec channelexec = (ChannelExec)session.openChannel("exec"); //will run your ssh or sftp command on the target
-			channelexec.setCommand(command);
-			channelexec.connect();
-			//run loop until command finished execution, then get its exit status
-			while (true) {
-				exitStatus = channelexec.getExitStatus();
-				if (exitStatus > -1){
-					break;
-				}
-			}
-			channelexec.disconnect();
-			if (exitStatus == 0){
-				return true;
-			}
-			else {
-				System.out.println ("command " +command+ " failed: " + exitStatus);
-				return false;
-			}
-		} catch (JSchException e){
-			//left out connection message
-			System.out.println("exception caught");
-			return false;
-		}
-	}
-	*/
 	public int ping_target(){
 		int statusCode = Ping.ping(target_server, timeout, portNumber);
 		return statusCode;
@@ -108,25 +83,25 @@ public class ToolManager {
 	//Target Server COnnection check via SSH
 	public boolean targetSSHConnection(){
 		boolean targetSSHConnected = false;
-		String command = "ssh " + target_id + "@" + target_server + " cp /home/vivian/Desktop/asdgsxcv/new.txt nnnew ";
-		System.out.println("ssh command" + command);
+		String command = " ssh -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " cp /home/vivian/Desktop/asdgsxcv/new.txt nnnew ";
+		System.out.println("ssh command: " + command);
 		targetSSHConnected = executeCommand(command);
 		return targetSSHConnected;
 	}
 	
 	//Target Server Connection check via SFTP
+	//create a dummy file with a simple command in source home, run it over sftp, then delete dummy file. 
 	public boolean targetSFTPConnection() {
 		boolean targetSFTPConnected = false;
-		String home = System.getProperty("user.home"); //instead of $HOME, which doesn't seem
-		//to evaluate correctly when executed by runtime. 
+		String home = System.getProperty("user.home");  
 		
 		String filename = "test.bat";
 		String targetFilePath = home +"/"+ filename;
 		String targetServerName = target_id + "@" + target_server;
-		String command = "ls";
+		String command = "pwd";
 		makeTestFile(targetFilePath, command);
 		
-		command = "sftp -b " + targetFilePath + " " + targetServerName;  
+		command = "sftp -o \"StrictHostKeyChecking no \" -b  " + targetFilePath + " " + targetServerName;  
 		System.out.println("TargetSFTPConnection:" + command);
 		targetSFTPConnected = executeCommand(command);
 		
@@ -140,6 +115,40 @@ public class ToolManager {
 		return targetSFTPConnected;
 	} 
 	
+	public int fileTransferValidation (String protocol, String source_LZ, String target_LZ){
+		int statusCode = 0;
+		boolean fileTransferValidation = false;
+		if(protocol.equalsIgnoreCase("sftp")){
+			fileTransferValidation = SFTPTransferValidation(source_LZ, target_LZ);
+			if (!fileTransferValidation){
+				statusCode = 502;
+			}
+		}
+		return statusCode;
+		
+	}
+	
+	public boolean SFTPTransferValidation(String source_LZ, String target_LZ){
+		String batchFileName = "sftpTransfer.bat";
+		//String batchRemovalFileName = "targetLZFilRemovalTest.bat";
+		String sftpCommand = "";
+		boolean sftpTransferValidated = false;
+		
+	//	can't be $HOME, needs to be HOME for this to work. 
+		// sftp is a separate program than bash, can't use env. variables like $HOME
+		String source_LZ1 = System.getenv(source_LZ);
+		String target_LZ1 = System.getenv(target_LZ);
+		
+		String sourceFilePath = source_LZ1 + "/" + batchFileName;
+		String transferCommand = "put " + sourceFilePath + " "+ target_LZ1 ; //like scp, puts file on remote. 
+		System.out.println(transferCommand);
+		makeTestFile(sourceFilePath, transferCommand);
+		
+		sftpCommand = "sftp -b \"" + sourceFilePath + "\" " + target_id + "@" + target_server;
+		sftpTransferValidated = executeCommand(sftpCommand); //fails if transfer fails
+		System.out.println("transfervalidation? " + sftpTransferValidated);
+		return sftpTransferValidated; 
+	}
 	public void makeTestFile(String targetFileLocation, String internalCommand) {
 		try {
 			PrintWriter writer = new PrintWriter(targetFileLocation);
@@ -153,15 +162,18 @@ public class ToolManager {
 	}
 	
 	public static void printStream(InputStream is, String type){
-		try(InputStreamReader isr = new InputStreamReader(is);
-		      BufferedReader br = new BufferedReader(isr)) 
-			{
-				String line = null;
-			    while ( (line = br.readLine()) != null)
+		try{
+		    BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			try{ 
+			    String line = null;
+				while ( (line = br.readLine()) != null)
 			            System.out.println(type + ">" + line);    
-			} catch (IOException ioe){
-		           ioe.printStackTrace();  
+			} finally {
+				br.close();
 			}
+		} catch (IOException ioe){
+	           ioe.printStackTrace();  
+		}
 	}
 	
 }

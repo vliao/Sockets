@@ -23,7 +23,7 @@ public class LZ_Details {
 	private String Target_LZ;
 	private String Description;
 	
-	public LZ_Details(ResultSet res){
+	public LZ_Details(ResultSet res){ //handle database query results
 		try {
 			Target_ID = res.getString(5);
 			Target_Server = res.getString(6);
@@ -37,15 +37,21 @@ public class LZ_Details {
 			e.printStackTrace();
 		}
 	}
-
-	public LZ_Details(String suser, String shost,String user, String host, String protocol, String LZ1, String LZ2, String desc) {
+//for testing purposes 
+	public LZ_Details(String suser, String shost, String user, String host, String protocol, String LZ1, String LZ2, String desc) {
 		Source_ID  = suser;
 		Source_Server = shost; 
 		Target_ID = user;
 		Target_Server = host;
-		Type = protocol;
-		Source_LZ = LZ1;
-		Target_LZ = LZ2;
+		Type = protocol; 
+		if (LZ1.charAt(0) == '$'){
+			Source_LZ = LZ1.substring(1,LZ1.length());
+		}
+		else {	Source_LZ = LZ1; }
+		if (LZ2.charAt(0) == '$'){
+			Target_LZ = LZ2.substring(1, LZ2.length());
+		}
+		else {	Target_LZ = LZ2; }
 		Description = desc; 
 	}
 	public String getSourceID() {

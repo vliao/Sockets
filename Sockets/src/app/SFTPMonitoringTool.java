@@ -33,13 +33,13 @@ public class SFTPMonitoringTool {
 		}*/
 		//testList.get(0).print_LZ_Details();
 		//use tester when you just want to see the connection tests run.
-		LZ_Details tester = new LZ_Details("vivian", "192.168.128.136", "vivian", "192.168.128.135","SFTP", "HOME", "HOME", "testing123");
+		LZ_Details tester = new LZ_Details("vivian", "192.168.128.136", "vivian", "192.168.128.139","SFTP", "$HOME", "HOME", "testing123");
 		//use test1 if you're getting lz_details from db.
 	//	LZ_Details test1 = new LZ_Details("kpccjobs","ftpkpcc-dit.ssdc.kp.org", "SSH", "$HOME","$HOME","DIT_Connection #1_ETL_CO");
-		test_connections(tester);// use this when you're ready to tun on app server/source servers*/
+		test_connection(tester);// use this when you're ready to tun on app server/source servers run it on every item in the list
 	}
 	
-	public void test_connections(LZ_Details lz){
+	public void test_connection(LZ_Details lz){
 		lz.print_LZ_Details();
 		ToolManager tm;
 		tm = new ToolManager(lz.getTargetID(), lz.getTargetServer());
@@ -49,6 +49,8 @@ public class SFTPMonitoringTool {
 		if (mainStatusCode == 0){
 			mainStatusCode = tm.targetServerConnection(lz.getType());
 			System.out.println(lz.getType()+ " connection: " + mainStatusCode);
+			mainStatusCode = tm.fileTransferValidation(lz.getType(), lz.getSourceLZ(), lz.getTargetLZ());
+			System.out.println("SFTP transfer validation: " + mainStatusCode);
 			//TODO validate landing zones for sftp tests
 		}
 	}
