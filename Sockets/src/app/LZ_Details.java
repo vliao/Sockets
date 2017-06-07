@@ -1,15 +1,14 @@
 package app;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
 
 /* contains parameters gathered from the database
  * used to execute SFTP/LZ Connection check. 
+ * sourceLZ still needed for file transfer validation, need a place to put dummy file. 
  */
 
 
@@ -44,16 +43,37 @@ public class LZ_Details {
 		Target_ID = user;
 		Target_Server = host;
 		Type = protocol; 
-		if (LZ1.charAt(0) == '$'){
-			Source_LZ = LZ1.substring(1,LZ1.length());
+		if (LZ1.equals("$HOME")){
+			Source_LZ = System.getenv(LZ1.substring(1, LZ1.length()));
 		}
 		else {	Source_LZ = LZ1; }
-		if (LZ2.charAt(0) == '$'){
-			Target_LZ = LZ2.substring(1, LZ2.length());
+		if (LZ2.equals("$HOME")){
+			System.out.println("converting $HOME");
+			setTargetLZ(LZ2);
 		}
-		else {	Target_LZ = LZ2; }
+		else {Target_LZ = LZ2;} 
 		Description = desc; 
 	}
+	
+	
+	public void setTargetLZ(String target){
+		String command = "ssh " + Target_ID + "@" + Target_Server + " env | grep HOME | cut -d'=' -f2 "; //workaround bash evaluating $HOME on source server
+		try{ 
+			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
+			builder.redirectErrorStream(true);
+			Process p = builder.start();
+			BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			String targ = br.readLine();
+			System.out.println("setting targe lZ  " + targ);
+			//printStream(p.getInputStream(), "Process OUTPUT");
+			this.Target_LZ = targ;  
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
 	public String getSourceID() {
 		return Source_ID;
 	}

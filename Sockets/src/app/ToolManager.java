@@ -10,9 +10,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 
 public class ToolManager {
+	private String protocol;
 	private String target_id;
 	private String target_server; //target server to be SSH'd to for initialization of connection check
-
+	private String source_LZ;
+	private String target_LZ;
 	
 	// Default values
 	private int portNumber;
@@ -24,13 +26,17 @@ public class ToolManager {
 		timeout = 3000;
 		exitStatus = 0;
 	}
-	public ToolManager(String target_id, String target_server){
+	public ToolManager(String protocol, String source_LZ, String target_LZ, String target_id, String target_server){
 		commonConstructor();
+		this.protocol = protocol;
 		this.target_id = target_id;
 		this.target_server = target_server;
+			this.source_LZ = source_LZ;
+			this.target_LZ = target_LZ;
+		//this.target_LZ = "/home/tion";  
+		
 	}
-
-// For ToolManager to talk to ThreadManager to create a thread for the upcoming command execution
+   
 	public boolean executeCommand(String command) {
 		try {
 			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
@@ -38,7 +44,7 @@ public class ToolManager {
 			Process p = builder.start();
 			p.waitFor();
 			exitStatus = p.exitValue(); //will return 0 for normal termination (success)
-			printStream(p.getInputStream(), "OUTPUT");
+			printStream(p.getInputStream(), "Process OUTPUT");  //suppress this when not testing. this is good for seeing the results of the commands you run
 			
 			if (exitStatus == 0 ){
 				 return true;
@@ -61,7 +67,7 @@ public class ToolManager {
 		return statusCode;
 	}
 	
-	public int targetServerConnection(String protocol){
+	public int targetServerConnection(){
 		int statusCode = 0;
 		boolean targetServerConnected = false;
 		if (protocol.equalsIgnoreCase("ssh")){
@@ -72,7 +78,7 @@ public class ToolManager {
 		}
 		else if(protocol.equalsIgnoreCase("sftp")) {
 			targetServerConnected = targetSFTPConnection();
-			if(!targetServerConnected) { //failed sftp connection
+			if(!targetServerConnected) { //failed sftp connection, targetSFTPConnection returned false
 				statusCode = 312;
 			}
 		}
@@ -80,73 +86,54 @@ public class ToolManager {
 		return statusCode;
 	}
 	
-	//Target Server COnnection check via SSH
+	//Target Server Connection check via SSH
 	public boolean targetSSHConnection(){
 		boolean targetSSHConnected = false;
-		String command = " ssh -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " cp /home/vivian/Desktop/asdgsxcv/new.txt nnnew ";
+		String command =  "ssh -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " pwd ";
 		System.out.println("ssh command: " + command);
 		targetSSHConnected = executeCommand(command);
 		return targetSSHConnected;
 	}
 	
 	//Target Server Connection check via SFTP
-	//create a dummy file with a simple command in source home, run it over sftp, then delete dummy file. 
 	public boolean targetSFTPConnection() {
 		boolean targetSFTPConnected = false;
-		String home = System.getProperty("user.home");  
-		
-		String filename = "test.bat";
-		String targetFilePath = home +"/"+ filename;
-		String targetServerName = target_id + "@" + target_server;
-		String command = "pwd";
-		makeTestFile(targetFilePath, command);
-		
-		command = "sftp -o \"StrictHostKeyChecking no \" -b  " + targetFilePath + " " + targetServerName;  
+		String command = "sftp -o \"StrictHostKeyChecking no \" -b  - "+ target_id + "@" + target_server + " <<< pwd ";  
 		System.out.println("TargetSFTPConnection:" + command);
 		targetSFTPConnected = executeCommand(command);
-		
-		Path filepath = Paths.get(targetFilePath);
-		try {
-			Files.delete(filepath);
-		} catch(Exception x) {
-			System.out.println("dummy file wasn't deleted");
-		}
-		
 		return targetSFTPConnected;
 	} 
 	
-	public int fileTransferValidation (String protocol, String source_LZ, String target_LZ){
+	
+	public boolean targetLZValidation(){ //if setTargetLZ fails or ls the contents of LZ,
+		boolean LZValid = false;
+		String command = "sftp -b - " + target_id + "@" + target_server + " <<< \"ls " + target_LZ + "\" ";   
+		System.out.println(command);
+		LZValid = executeCommand(command);
+		return LZValid;
+	}
+	
+	public int fileTransferValidation (){
 		int statusCode = 0;
 		boolean fileTransferValidation = false;
 		if(protocol.equalsIgnoreCase("sftp")){
-			fileTransferValidation = SFTPTransferValidation(source_LZ, target_LZ);
+			fileTransferValidation = SFTPTransferValidation();
 			if (!fileTransferValidation){
 				statusCode = 502;
 			}
 		}
 		return statusCode;
-		
 	}
-	
-	public boolean SFTPTransferValidation(String source_LZ, String target_LZ){
+	/*this creates a file on source containing file transfer commands, executes this file on the source, copying this file to target. */
+	//fais for invalid target LZ, or no permission to LZ(tested on centos) 
+	public boolean SFTPTransferValidation(){	
 		String batchFileName = "sftpTransfer.bat";
-		//String batchRemovalFileName = "targetLZFilRemovalTest.bat";
-		String sftpCommand = "";
 		boolean sftpTransferValidated = false;
-		
-	//	can't be $HOME, needs to be HOME for this to work. 
-		// sftp is a separate program than bash, can't use env. variables like $HOME
-		String source_LZ1 = System.getenv(source_LZ);
-		String target_LZ1 = System.getenv(target_LZ);
-		
-		String sourceFilePath = source_LZ1 + "/" + batchFileName;
-		String transferCommand = "put " + sourceFilePath + " "+ target_LZ1 ; //like scp, puts file on remote. 
-		System.out.println(transferCommand);
+		String sourceFilePath = source_LZ + "/" + batchFileName;
+		String transferCommand = "put " + sourceFilePath + " "+ target_LZ ; //like scp, puts file on remote. 
 		makeTestFile(sourceFilePath, transferCommand);
-		
-		sftpCommand = "sftp -b \"" + sourceFilePath + "\" " + target_id + "@" + target_server;
-		sftpTransferValidated = executeCommand(sftpCommand); //fails if transfer fails
-		System.out.println("transfervalidation? " + sftpTransferValidated);
+		String sftpCommand = "sftp -b \"" + sourceFilePath + "\" " + target_id + "@" + target_server;
+		sftpTransferValidated = executeCommand(sftpCommand); //execute the command in the .bat file, fails if transfer fails - due to LZ or permissions.
 		return sftpTransferValidated; 
 	}
 	public void makeTestFile(String targetFileLocation, String internalCommand) {
