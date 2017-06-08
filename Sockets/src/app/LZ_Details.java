@@ -44,9 +44,11 @@ public class LZ_Details {
 		Target_Server = host;
 		Type = protocol; 
 		if (LZ1.equals("$HOME")){
+			System.out.println("converting source HOME");
 			Source_LZ = System.getenv(LZ1.substring(1, LZ1.length()));
 		}
 		else {	Source_LZ = LZ1; }
+		
 		if (LZ2.equals("$HOME")){
 			System.out.println("converting $HOME");
 			setTargetLZ(LZ2);
@@ -71,7 +73,6 @@ public class LZ_Details {
 			e.printStackTrace();
 		}
 	}
-	
 	
 	
 	public String getSourceID() {

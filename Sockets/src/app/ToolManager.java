@@ -31,8 +31,8 @@ public class ToolManager {
 		this.protocol = protocol;
 		this.target_id = target_id;
 		this.target_server = target_server;
-			this.source_LZ = source_LZ;
-			this.target_LZ = target_LZ;
+		this.source_LZ = source_LZ;
+		this.target_LZ = target_LZ;
 		//this.target_LZ = "/home/tion";  
 		
 	}
