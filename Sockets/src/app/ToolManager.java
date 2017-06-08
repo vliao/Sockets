@@ -31,10 +31,8 @@ public class ToolManager {
 		this.protocol = protocol;
 		this.target_id = target_id;
 		this.target_server = target_server;
-			this.source_LZ = source_LZ;
-			this.target_LZ = target_LZ;
-		//this.target_LZ = "/home/tion";  
-		
+		this.source_LZ = source_LZ;
+		this.target_LZ = target_LZ;
 	}
    
 	public boolean executeCommand(String command) {
@@ -67,23 +65,16 @@ public class ToolManager {
 		return statusCode;
 	}
 	
-	public int targetServerConnection(){
-		int statusCode = 0;
+	public boolean targetServerConnection(){
 		boolean targetServerConnected = false;
 		if (protocol.equalsIgnoreCase("ssh")){
 			targetServerConnected = targetSSHConnection();
-			if(!targetServerConnected){
-				statusCode = 311;
-			}
 		}
 		else if(protocol.equalsIgnoreCase("sftp")) {
 			targetServerConnected = targetSFTPConnection();
-			if(!targetServerConnected) { //failed sftp connection, targetSFTPConnection returned false
-				statusCode = 312;
-			}
 		}
 		//else if -- handle other protocols. 
-		return statusCode;
+		return targetServerConnected;
 	}
 	
 	//Target Server Connection check via SSH
@@ -104,7 +95,6 @@ public class ToolManager {
 		return targetSFTPConnected;
 	} 
 	
-	
 	public boolean targetLZValidation(){ //if setTargetLZ fails or ls the contents of LZ,
 		boolean LZValid = false;
 		String command = "sftp -b - " + target_id + "@" + target_server + " <<< \"ls " + target_LZ + "\" ";   
@@ -112,20 +102,9 @@ public class ToolManager {
 		LZValid = executeCommand(command);
 		return LZValid;
 	}
-	
-	public int fileTransferValidation (){
-		int statusCode = 0;
-		boolean fileTransferValidation = false;
-		if(protocol.equalsIgnoreCase("sftp")){
-			fileTransferValidation = SFTPTransferValidation();
-			if (!fileTransferValidation){
-				statusCode = 502;
-			}
-		}
-		return statusCode;
-	}
+
 	/*this creates a file on source containing file transfer commands, executes this file on the source, copying this file to target. */
-	//fais for invalid target LZ, or no permission to LZ(tested on centos) 
+	//fails for invalid target LZ, or no permission to LZ(tested on centos) 
 	public boolean SFTPTransferValidation(){	
 		String batchFileName = "sftpTransfer.bat";
 		boolean sftpTransferValidated = false;

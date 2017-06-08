@@ -9,7 +9,7 @@ public class SFTPMonitoringTool {
 		List<LZ_Details> testList = new ArrayList<LZ_Details>();
 		String url="jdbc:mysql://172.17.119.160:3306/kpccmt_db";
 	
-		String query= "SELECT * FROM connections WHERE component_id=" +comp ; 
+		String query= "SELECT * FROM connections WHERE component_id=" +comp + " AND target_server=\"szaddb88.ssdc.kp.org\" "; 
 		try
 		{
 			Class.forName("com.mysql.jdbc.Driver"); 
@@ -29,6 +29,7 @@ public class SFTPMonitoringTool {
 		for (LZ_Details lz : testList){
 			lz.print_LZ_Details();
 		}
+		test_connection(testList.get(0));
 	}
 	public static void test_connection(LZ_Details lz){
 		lz.print_LZ_Details();
@@ -36,35 +37,28 @@ public class SFTPMonitoringTool {
 		tm = new ToolManager(lz.getType(), lz.getSourceLZ(), lz.getTargetLZ(), lz.getTargetID(), lz.getTargetServer());
 		int validServer = tm.ping_target();
 		System.out.println("pinging " +lz.getTargetServer() + ", status: " + validServer);
-		int validConnection = tm.targetServerConnection();
-		System.out.println(lz.getType() + " connection: " + validConnection);
-		if (lz.getType().equalsIgnoreCase("sftp")){
-			int validTransfer = tm.fileTransferValidation();
-			System.out.println("transfer was : " + validTransfer);
-			if (validTransfer != 0){
-				boolean validLZ = tm.targetLZValidation();
-				System.out.println("validLZ: " + validLZ);
+		if (validServer == 0) {
+			boolean validConnection = tm.targetServerConnection();
+			System.out.println(lz.getType() + " connection: " + validConnection);
+			if (validConnection){
+				if (lz.getType().equalsIgnoreCase("sftp")){
+					boolean validTransfer = tm.SFTPTransferValidation();
+					System.out.println("transfer was : " + validTransfer);
+					if (!validTransfer){
+						boolean validLZ = tm.targetLZValidation();
+						System.out.println("validLZ: " + validLZ);
+						if (validLZ){
+							//if file transfer fails but lz is valid then its a permission issue. 
+							System.out.println("permission issue");
+						}
+					}
+				}
 			}
-			//if file transfer fails but lz is valid then its a permission issue. 
-			
 		}
-		/*
-		//IF TARGET IS VALID,
-		if (mainStatusCode == 0){
-			mainStatusCode = tm.targetServerConnection(protocol);
-			System.out.println(lz.getType()+ " connection: " + mainStatusCode);
-			//IF CONNECTION IS SUCCESSFUL and SFTP
-			if (mainStatusCode == 0 && protocol.equalsIgnoreCase("SFTP")){
-				 // 
-				tm.targetLZValidation();
-				//mainStatusCode = tm.fileTransferValidation(protocol);
-				//System.out.println("SFTP transfer validation: " + mainStatusCode); 
-			}
-		}*/
 	}
 	public static void main(String[] args){
 		SFTPMonitoringTool a = new SFTPMonitoringTool();
-		a.inputTest(1);
+		a.inputTest(77);
 		
 	}
 }

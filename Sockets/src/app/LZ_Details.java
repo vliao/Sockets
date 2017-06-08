@@ -30,7 +30,15 @@ public class LZ_Details {
 			Target_Server = res.getString(6);
 			Type = res.getString(7); //protocol, ie ssh, sftp
 			Source_LZ = res.getString(8);
+			if (Source_LZ.equals("$HOME")){
+				System.out.println("inputDB converting $HOME");
+				Source_LZ = System.getenv(Source_LZ.substring(1, Source_LZ.length()));
+			}
 			Target_LZ = res.getString(9);
+			if (Target_LZ.equals("$HOME")){
+				System.out.println("inputDB converting TARGET $HOME");
+				setTargetLZ(Target_LZ);
+			}
 			Description = res.getString(10);
 		}
 		catch (SQLException e) {
@@ -46,6 +54,7 @@ public class LZ_Details {
 		Target_Server = host;
 		Type = protocol; 
 		if (LZ1.equals("$HOME")){
+			System.out.println("inputDB converting $HOME");
 			Source_LZ = System.getenv(LZ1.substring(1, LZ1.length()));
 		}
 		else {	Source_LZ = LZ1; }
