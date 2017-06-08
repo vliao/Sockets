@@ -24,6 +24,8 @@ public class LZ_Details {
 	
 	public LZ_Details(ResultSet res){ //handle database query results
 		try {
+			Source_ID = res.getString(3);
+			Source_Server=res.getString(4);
 			Target_ID = res.getString(5);
 			Target_Server = res.getString(6);
 			Type = res.getString(7); //protocol, ie ssh, sftp
@@ -117,7 +119,8 @@ public class LZ_Details {
 	}
 	
 	public void print_LZ_Details() {  
-		System.out.println("Target: " + Target_ID + "@" + Target_Server + "\n"
+		System.out.println("Source: " + Source_ID + "@" + Source_Server + "\n" + 
+						"Target: " + Target_ID + "@" + Target_Server + "\n"
 						 + "Protocol Type: " + Type + "   "
 						 + "Source LZ: " + Source_LZ + "        "
 						 + "Target_LZ: " + Target_LZ + "\n"			
