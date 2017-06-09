@@ -3,9 +3,6 @@ package app;
 import java.io.InputStream;	//For reading command line output
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths; 
 import java.io.BufferedReader;
 import java.io.IOException;
 
@@ -21,18 +18,15 @@ public class ToolManager {
 	private int timeout;
 	private int exitStatus;	
 	
-	public void commonConstructor(){
+	public ToolManager(LZ_Details lz){
 		portNumber = 22;
 		timeout = 3000;
 		exitStatus = 0;
-	}
-	public ToolManager(String protocol, String source_LZ, String target_LZ, String target_id, String target_server){
-		commonConstructor();
-		this.protocol = protocol;
-		this.target_id = target_id;
-		this.target_server = target_server;
-		this.source_LZ = source_LZ;
-		this.target_LZ = target_LZ;
+		protocol = lz.getType();
+		target_id = lz.getTargetID();
+		target_server = lz.getTargetServer();
+		source_LZ = lz.getSourceLZ();
+		target_LZ = lz.getTargetLZ();
 	}
    
 	public boolean executeCommand(String command) {
@@ -60,27 +54,19 @@ public class ToolManager {
 		}
 		
 	}
-	public int ping_target(){
-		int statusCode = Ping.ping(target_server, timeout, portNumber);
-		return statusCode;
-	}
-	
-	public boolean targetServerConnection(){
-		boolean targetServerConnected = false;
-		if (protocol.equalsIgnoreCase("ssh")){
-			targetServerConnected = targetSSHConnection();
-		}
-		else if(protocol.equalsIgnoreCase("sftp")) {
-			targetServerConnected = targetSFTPConnection();
-		}
-		//else if -- handle other protocols. 
-		return targetServerConnected;
+	public boolean ping_target(){
+		boolean validServer = Ping.ping(target_server, timeout, portNumber);
+		return validServer;
 	}
 	
 	//Target Server Connection check via SSH
 	public boolean targetSSHConnection(){
 		boolean targetSSHConnected = false;
-		String command =  "ssh -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " pwd ";
+		String command = null;
+		if (protocol.equalsIgnoreCase("ssh")){
+			command =  "ssh -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " pwd ";
+		}
+		else { command = "/opt/tectia/bin/ssh2 -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " pwd ";} //not tested, copied from david. 
 		System.out.println("ssh command: " + command);
 		targetSSHConnected = executeCommand(command);
 		return targetSSHConnected;
@@ -109,9 +95,13 @@ public class ToolManager {
 		String batchFileName = "sftpTransfer.bat";
 		boolean sftpTransferValidated = false;
 		String sourceFilePath = source_LZ + "/" + batchFileName;
-		String transferCommand = "put " + sourceFilePath + " "+ target_LZ ; //like scp, puts file on remote. 
+		String transferCommand = "lalalla"; //"put " + sourceFilePath + " "+ target_LZ ; //like scp, puts file on remote. 
 		makeTestFile(sourceFilePath, transferCommand);
-		String sftpCommand = "sftp -b \"" + sourceFilePath + "\" " + target_id + "@" + target_server;
+		
+		
+		String sftpCommand = "sftp -b - " + target_id + "@" + target_server + " <<< \" put " +
+				sourceFilePath + " /home/connection/sftpTest \" ";
+		
 		sftpTransferValidated = executeCommand(sftpCommand); //execute the command in the .bat file, fails if transfer fails - due to LZ or permissions.
 		return sftpTransferValidated; 
 	}

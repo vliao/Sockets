@@ -9,7 +9,7 @@ import java.net.UnknownHostException;
 
 public class Ping {  //used by toolmanager
 	//first tries to ping a given address
-	public static int ping(String serverName, int timeout, int port){
+	public static boolean ping(String serverName, int timeout, int port){
 		int statusCode = 0;
 		Socket socket = new Socket();
 		InetAddress inetAddress = null;
@@ -41,7 +41,10 @@ public class Ping {  //used by toolmanager
 				//System.out.print(" Socket closure exception ");
 			}
 		}
-		return statusCode;
+		if (statusCode == 0){ 
+			return true;
+		}
+		else return false;
 	}
 
 	public static InetAddress getInetAddress(String serverName) throws UnknownHostException{

@@ -5,7 +5,7 @@ import java.util.List;
 public class SFTPMonitoringTool {
 
 	public void inputTest(int comp){ 
-		
+		/*
 		List<LZ_Details> testList = new ArrayList<LZ_Details>();
 		String url="jdbc:mysql://172.17.119.160:3306/kpccmt_db";
 	
@@ -29,16 +29,33 @@ public class SFTPMonitoringTool {
 		for (LZ_Details lz : testList){
 			lz.print_LZ_Details();
 		}
-		test_connection(testList.get(0));
+		test_connection(testList.get(0));*/
+	
 	}
 	public static void test_connection(LZ_Details lz){
 		lz.print_LZ_Details();
 		ToolManager tm;
-		tm = new ToolManager(lz.getType(), lz.getSourceLZ(), lz.getTargetLZ(), lz.getTargetID(), lz.getTargetServer());
-		int validServer = tm.ping_target();
-		System.out.println("pinging " +lz.getTargetServer() + ", status: " + validServer);
+		tm = new ToolManager(lz);
+		//Test for valid server, test ssh connection
+		if (lz.getType().equalsIgnoreCase("SSH") || lz.getType().equalsIgnoreCase("SSH2")){
+			if (tm.ping_target()){
+				boolean ssh_success=tm.targetSSHConnection();
+				System.out.println("successful ssh? " + ssh_success);
+			}
+		}
+		
+		//sftp file transfer tests
+		else if (lz.getType().equalsIgnoreCase("sftp") || lz.getType().equalsIgnoreCase("sftp")){
+			boolean sftp_success = tm.SFTPTransferValidation();
+			System.out.println("SFTP: " + sftp_success);
+		}
+		
+		else {}  //skip, do nothing
+		
+		/*
+		
 		if (validServer == 0) {
-			boolean validConnection = tm.targetServerConnection();
+			boolean validConnection = tm.targetSFTPConnection();
 			System.out.println(lz.getType() + " connection: " + validConnection);
 			if (validConnection){
 				if (lz.getType().equalsIgnoreCase("sftp")){
@@ -54,11 +71,12 @@ public class SFTPMonitoringTool {
 					}
 				}
 			}
-		}
+		}*/
 	}
 	public static void main(String[] args){
-		SFTPMonitoringTool a = new SFTPMonitoringTool();
-		a.inputTest(77);
-		
+		//SFTPMonitoringTool a = new SFTPMonitoringTool();
+		//a.inputTest(77);
+		LZ_Details lz = new LZ_Details("vivian", "192.168.128.140", "connection", "192.168.128.139", "sftp", "$HOME", "$HOME", "asfa");
+		test_connection(lz);
 	}
 }
