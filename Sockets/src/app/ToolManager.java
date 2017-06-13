@@ -29,30 +29,30 @@ public class ToolManager {
 		target_LZ = lz.getTargetLZ();
 	}
    
-	public boolean executeCommand(String command) {
+	public String execute(String command){
+		String output = "";
 		try {
 			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
 			builder.redirectErrorStream(true);
 			Process p = builder.start();
 			p.waitFor();
 			exitStatus = p.exitValue(); //will return 0 for normal termination (success)
-			printStream(p.getInputStream(), "Process OUTPUT");  //suppress this when not testing. this is good for seeing the results of the commands you run
+			output = returnStream(p.getInputStream());  //suppress this when not testing. this is good for seeing the results of the commands you run
 			
 			if (exitStatus == 0 ){
-				 return true;
+				 return output;
 			}
 			else {
 				System.out.println("command failed");
-				return false;
+				return "false";
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			return false;
+			return "false";
 		} catch (InterruptedException e){
 			e.printStackTrace();
-			return false;
+			return "false";
 		}
-		
 	}
 	public boolean ping_target(){
 		boolean validServer = Ping.ping(target_server, timeout, portNumber);
@@ -60,51 +60,75 @@ public class ToolManager {
 	}
 	
 	//Target Server Connection check via SSH
-	public boolean targetSSHConnection(){
-		boolean targetSSHConnected = false;
+	public boolean[] targetSSHConnection(){
+		String output="";
+		boolean[] result = new boolean[3];
 		String command = null;
+		String options = " -o StrictHostKeyChecking=no -o BatchMode=yes ";
 		if (protocol.equalsIgnoreCase("ssh")){
-			command =  "ssh -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " pwd ";
+			command =  "ssh"+ options  + target_id + "@" + target_server + " pwd ";
 		}
-		else { command = "/opt/tectia/bin/ssh2 -o \"StrictHostKeyChecking no \" " + target_id + "@" + target_server + " pwd ";} //not tested, copied from david. 
+		else { command = "/opt/tectia/bin/ssh2" + options + target_id + "@" + target_server + " pwd ";} //not tested, copied from david. 
 		System.out.println("ssh command: " + command);
-		targetSSHConnected = executeCommand(command);
-		return targetSSHConnected;
-	}
-	
-	//Target Server Connection check via SFTP
-	public boolean targetSFTPConnection() {
-		boolean targetSFTPConnected = false;
-		String command = "sftp -o \"StrictHostKeyChecking no \" -b  - "+ target_id + "@" + target_server + " <<< pwd ";  
-		System.out.println("TargetSFTPConnection:" + command);
-		targetSFTPConnected = executeCommand(command);
-		return targetSFTPConnected;
-	} 
-	
-	public boolean targetLZValidation(){ //if setTargetLZ fails or ls the contents of LZ,
-		boolean LZValid = false;
-		String command = "sftp -b - " + target_id + "@" + target_server + " <<< \"ls " + target_LZ + "\" ";   
-		System.out.println(command);
-		LZValid = executeCommand(command);
-		return LZValid;
+		output = execute(command);
+		
+		if(!output.contains("Permission denied")){
+			result[0]=true;
+			result[1]=true;
+			result[2]=true;
+		}
+	    return result;
 	}
 
-	/*this creates a file on source containing file transfer commands, executes this file on the source, copying this file to target. */
-	//fails for invalid target LZ, or no permission to LZ(tested on centos) 
-	public boolean SFTPTransferValidation(){	
-		String batchFileName = "sftpTransfer.bat";
-		boolean sftpTransferValidated = false;
-		String sourceFilePath = source_LZ + "/" + batchFileName;
-		String transferCommand = "lalalla"; //"put " + sourceFilePath + " "+ target_LZ ; //like scp, puts file on remote. 
-		makeTestFile(sourceFilePath, transferCommand);
+	//creates a dummy file, puts that file on remote over sftp, scans output for failure keywords: "denied" 
+	//or "No such" (like augustine's)
+	public boolean[] SFTPTransferValidation(){	
+		String testFileName = "sftpTransfer.bat";
+		String output;
+		String options = "-o StrictHostKeyChecking=no -o BatchMode=yes ";
+		String command = "sftp ";
+		if (protocol.equalsIgnoreCase("sftp2")){
+			command = "/opt/tectia/bin/sftp2 ";
+		}
+		
+		boolean sftpTransfer= true;
+		boolean permission = true;
+		boolean validLZ = true;
+		String sourceFilePath = source_LZ + "/" + testFileName;
+		String targetFilePath = target_LZ + "/" + testFileName;
+		String dummyText = "this file will be created on the source and put on target by sftp"; 
+		makeTestFile(sourceFilePath, dummyText);
 		
 		
-		String sftpCommand = "sftp -b - " + target_id + "@" + target_server + " <<< \" put " +
-				sourceFilePath + " /home/connection/sftpTest \" ";
+		String sftpCommand = command + options + target_id + "@" + target_server + " <<<  \"put " 
+				+ "sourceFilePath" + " " + targetFilePath + "\" ";
+		output = execute(sftpCommand); 		
+		System.out.println(output);
 		
-		sftpTransferValidated = executeCommand(sftpCommand); //execute the command in the .bat file, fails if transfer fails - due to LZ or permissions.
-		return sftpTransferValidated; 
+		if (output.contains("No route") || output.equals("false")){ //no access to server- lacks ssh keys
+			permission = false;
+			validLZ= false;
+			sftpTransfer = false;
+		}
+		if (output.contains("denied")){ //no permission to copy files to the LZ
+			permission= false;
+			sftpTransfer = false;
+		}
+		if (output.contains("No such")){
+			validLZ= false;
+			sftpTransfer = false;
+			System.out.println("no LZ");
+		}
+		
+		boolean[] result = new boolean[3];
+		result[0] = sftpTransfer;
+		result[1] = permission;
+		result[2] = validLZ;
+		
+		removeTestFile(sourceFilePath, targetFilePath, command);
+		return result;
 	}
+	
 	public void makeTestFile(String targetFileLocation, String internalCommand) {
 		try {
 			PrintWriter writer = new PrintWriter(targetFileLocation);
@@ -116,20 +140,28 @@ public class ToolManager {
 		}
 		System.out.println("Dummy File Created");
 	}
-	
-	public static void printStream(InputStream is, String type){
+	public void removeTestFile(String sourceFileLocation, String targetFileLocation, String command){
+		String remove = " rm \""+ sourceFileLocation + "\"";
+		execute(remove);
+		remove = command + target_id + "@" + target_server + " <<<  \" rm " + targetFileLocation + "\"";
+		execute(remove);
+	}
+	public String returnStream(InputStream is){
+		StringBuilder output = new StringBuilder();
 		try{
 		    BufferedReader br = new BufferedReader(new InputStreamReader(is));
 			try{ 
 			    String line = null;
-				while ( (line = br.readLine()) != null)
-			            System.out.println(type + ">" + line);    
+				while ( (line = br.readLine()) != null){
+			        System.out.println("process output: >" + line);    
+					output.append(line);}
 			} finally {
 				br.close();
 			}
 		} catch (IOException ioe){
 	           ioe.printStackTrace();  
 		}
+		return output.toString();
 	}
 	
 }

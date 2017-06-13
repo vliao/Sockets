@@ -1,6 +1,7 @@
 package app;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 public class SFTPMonitoringTool {
 
@@ -33,45 +34,32 @@ public class SFTPMonitoringTool {
 	
 	}
 	public static void test_connection(LZ_Details lz){
-		lz.print_LZ_Details();
+	//	lz.print_LZ_Details();
 		ToolManager tm;
 		tm = new ToolManager(lz);
 		//Test for valid server, test ssh connection
-		if (lz.getType().equalsIgnoreCase("SSH") || lz.getType().equalsIgnoreCase("SSH2")){
-			if (tm.ping_target()){
-				boolean ssh_success=tm.targetSSHConnection();
-				System.out.println("successful ssh? " + ssh_success);
+		if (tm.ping_target()){
+			//SSH or SSH2 protocol
+			if (lz.getType().equalsIgnoreCase("SSH") || lz.getType().equalsIgnoreCase("SSH2")){
+			
+				boolean[] ssh_success=tm.targetSSHConnection();
+				System.out.println("successful ssh? " + Arrays.toString(ssh_success));
+				//update db
+			}
+			
+			//sftp transfer tests
+			else if (lz.getType().equalsIgnoreCase("sftp") || lz.getType().equalsIgnoreCase("sftp2")){
+				boolean[] sftp_success = tm.SFTPTransferValidation();
+				System.out.println("SFTPTransferTest: " + Arrays.toString(sftp_success));
+				//update db
+			}
+			else { //skip
 			}
 		}
-		
-		//sftp file transfer tests
-		else if (lz.getType().equalsIgnoreCase("sftp") || lz.getType().equalsIgnoreCase("sftp")){
-			boolean sftp_success = tm.SFTPTransferValidation();
-			System.out.println("SFTP: " + sftp_success);
+		else {
+			System.out.println("invalid server, [false, false, false]");
 		}
 		
-		else {}  //skip, do nothing
-		
-		/*
-		
-		if (validServer == 0) {
-			boolean validConnection = tm.targetSFTPConnection();
-			System.out.println(lz.getType() + " connection: " + validConnection);
-			if (validConnection){
-				if (lz.getType().equalsIgnoreCase("sftp")){
-					boolean validTransfer = tm.SFTPTransferValidation();
-					System.out.println("transfer was : " + validTransfer);
-					if (!validTransfer){
-						boolean validLZ = tm.targetLZValidation();
-						System.out.println("validLZ: " + validLZ);
-						if (validLZ){
-							//if file transfer fails but lz is valid then its a permission issue. 
-							System.out.println("permission issue");
-						}
-					}
-				}
-			}
-		}*/
 	}
 	public static void main(String[] args){
 		//SFTPMonitoringTool a = new SFTPMonitoringTool();
