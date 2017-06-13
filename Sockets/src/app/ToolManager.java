@@ -101,9 +101,9 @@ public class ToolManager {
 		
 		
 		String sftpCommand = command + options + target_id + "@" + target_server + " <<<  \"put " 
-				+ "sourceFilePath" + " " + targetFilePath + "\" ";
+				+ sourceFilePath + " " + targetFilePath + "\" ";
 		output = execute(sftpCommand); 		
-		System.out.println(output);
+		//System.out.println(output);
 		
 		if (output.contains("No route") || output.equals("false")){ //no access to server- lacks ssh keys
 			permission = false;
@@ -114,10 +114,9 @@ public class ToolManager {
 			permission= false;
 			sftpTransfer = false;
 		}
-		if (output.contains("No such")){
+		if (output.contains("No such")){//invalid LZ or something went wrong when creating the dummy file
 			validLZ= false;
 			sftpTransfer = false;
-			System.out.println("no LZ");
 		}
 		
 		boolean[] result = new boolean[3];
@@ -138,7 +137,7 @@ public class ToolManager {
 		catch (IOException e ){
 			e.printStackTrace();
 		}
-		System.out.println("Dummy File Created");
+		//System.out.println("Dummy File Created");
 	}
 	public void removeTestFile(String sourceFileLocation, String targetFileLocation, String command){
 		String remove = " rm \""+ sourceFileLocation + "\"";
@@ -153,7 +152,7 @@ public class ToolManager {
 			try{ 
 			    String line = null;
 				while ( (line = br.readLine()) != null){
-			        System.out.println("process output: >" + line);    
+			        //System.out.println("process output: >" + line);    
 					output.append(line);}
 			} finally {
 				br.close();

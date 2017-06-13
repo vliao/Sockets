@@ -7,8 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /* contains parameters gathered from the database
- * used to execute SFTP/LZ Connection check. 
- * sourceLZ still needed for file transfer validation, need a place to put dummy file. 
+ * used to execute SFTP/LZ Connection check.
  */
 
 
@@ -21,9 +20,11 @@ public class LZ_Details {
 	private String Source_LZ;
 	private String Target_LZ;
 	private String Description;
+	private int Connection_ID;
 	
 	public LZ_Details(ResultSet res){ //handle database query results
 		try {
+			Connection_ID = res.getInt(1);
 			Source_ID = res.getString(3);
 			Source_Server=res.getString(4);
 			Target_ID = res.getString(5);
@@ -31,12 +32,12 @@ public class LZ_Details {
 			Type = res.getString(7); //protocol, ie ssh, sftp
 			Source_LZ = res.getString(8);
 			if (Source_LZ.equals("$HOME")){
-				System.out.println("inputDB converting $HOME");
+				//System.out.println("inputDB converting $HOME");
 				Source_LZ = System.getenv(Source_LZ.substring(1, Source_LZ.length()));
 			}
 			Target_LZ = res.getString(9);
 			if (Target_LZ.equals("$HOME")){
-				System.out.println("inputDB converting TARGET $HOME");
+				//System.out.println("inputDB converting TARGET $HOME");
 				setTargetLZ(Target_LZ);
 			}
 			Description = res.getString(10);
@@ -46,7 +47,7 @@ public class LZ_Details {
 			e.printStackTrace();
 		}
 	}
-//for testing purposes 
+/*for testing the tests on centos
 	public LZ_Details(String suser, String shost, String user, String host, String protocol, String LZ1, String LZ2, String desc) {
 		Source_ID  = suser;
 		Source_Server = shost; 
@@ -64,27 +65,23 @@ public class LZ_Details {
 		}
 		else {Target_LZ = LZ2;} 
 		Description = desc; 
-	}
+	} */
 	
 	
 	public void setTargetLZ(String target){
-		String command = "ssh " + Target_ID + "@" + Target_Server + " env | grep HOME | cut -d'=' -f2 "; //workaround bash evaluating $HOME on source server
+		String command = "ssh -o \"BatchMode=yes\" " + Target_ID + "@" + Target_Server + " env | grep HOME | cut -d'=' -f2 "; //workaround bash evaluating $HOME on source server
 		try{ 
 			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
 			builder.redirectErrorStream(true);
 			Process p = builder.start();
 			BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			String targ = br.readLine();
-			System.out.println("setting targe lZ  " + targ);
-			//printStream(p.getInputStream(), "Process OUTPUT");
+			//System.out.println("setting target lZ  " + targ);
 			this.Target_LZ = targ;  
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
-	
-	
 	public String getSourceID() {
 		return Source_ID;
 	}
@@ -115,6 +112,9 @@ public class LZ_Details {
 	public String getDescription() {
 		return Description;
 	}
+	public int getConnID(){
+		return Connection_ID;
+	}
 ///not sure these will be needed if augustine will send list of connections to test. 
 	public String getRegion() {
 		String[] tmp = this.getDescription().split("_");
@@ -133,7 +133,7 @@ public class LZ_Details {
 						 + "Protocol Type: " + Type + "   "
 						 + "Source LZ: " + Source_LZ + "        "
 						 + "Target_LZ: " + Target_LZ + "\n"			
-						 + "Description: " + Description + "\n");
+						 + "Description: " + Description);
 	}
 
 }
