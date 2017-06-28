@@ -10,14 +10,15 @@ public class Requester {
 	BufferedReader stdIn;
 	String server_message;
 	String client_message;
+	int port;
 	Requester(){};
 	InetAddress server= null; 
 	void run(){
 		try{
 			//1. create socket
-			System.out.println("server" + server);
-			requestSocket = new Socket(server, 9999);
-			System.out.println("connected to localhost port 9999");
+			System.out.println("server/IP: " + server);
+			requestSocket = new Socket(server, port);
+			System.out.println("connected to localhost port " + port);
 			//2. get IO streams
 			out = new PrintWriter(requestSocket.getOutputStream(),true);
 			out.flush();
@@ -27,7 +28,6 @@ public class Requester {
 			server_message = (String)in.readLine(); 
 			System.out.println("server> "+server_message);
 			sendMessage("Hello server");
-				
 			
 			do{
 				
@@ -73,6 +73,7 @@ public class Requester {
 	public static void main(String args[]){
 		Requester client = new Requester();
 		client.setInetAddress(args[0]);
+		client.port = Integer.parseInt(args[1]);
 		client.run();
 	}
 }

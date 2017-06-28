@@ -1,10 +1,16 @@
 package socket;
 import java.net.*;
+import java.util.Properties;
+
+//import app.LZ_Details;
+import app.SFTPMonitoringTool;
+
 import java.io.*;
 
 public class Provider {
 	ServerSocket providerSocket;
-	int portNumber=9999;
+	private static String user="";
+	private int portNumber=9999;
 	Socket connection=null;
 	PrintWriter out;
 	BufferedReader in;
@@ -37,22 +43,20 @@ public class Provider {
 					
 					//either bye or a command
 					else {
-							System.out.println("executing a command");
+							System.out.println("testing connections for component_id=" + message);
 							
-							/*  for windows
-							 * ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/c", message);
-							 builder.redirectErrorStream(true);
-							java.lang.Process p = builder.start();
-							*/
-							Process p  = Runtime.getRuntime().exec(message);
+						    String[] args = message.split(" " );
+							SFTPMonitoringTool domino = new SFTPMonitoringTool();
+					    	domino.inputTest(Integer.parseInt(args[0]));
+							/*Process p  = Runtime.getRuntime().exec(message);
 							p.waitFor();
 							
 							BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
 							String line;
 							while ((line=r.readLine())!=null){
 						            sendMessage(line);
-						        }
-							 r.close();
+				  		        }
+							 r.close();*/
 							 out.println("alldone");
 							 System.out.println("done sending result");
 					}
@@ -62,9 +66,8 @@ public class Provider {
 		} catch (IOException e){
 			System.out.println("Exception caught when trying to listen on port " + portNumber + 
 					" or listening for a connection");
-		} catch (InterruptedException e){
-			System.out.println("Exception caught when executing " + message);
-		}
+			e.printStackTrace();
+		} 
 		finally{
 			try{ //when client says bye, close these  
 				in.close();
@@ -81,8 +84,36 @@ public class Provider {
 		out.flush();
 		//System.out.println("server> " + msg);	//this prints in provider terminal
 	}
+	void setProperties(){
+		Properties prop = new Properties();
+		InputStream input = null;
+		try {
+			input = new FileInputStream("config.properties");
+			prop.load(input);
+			user = (prop.getProperty("user"));
+			portNumber = Integer.parseInt(prop.getProperty("port"));
+			System.out.println(portNumber);
+		}
+		catch (IOException e){
+			e.printStackTrace();
+		}
+		finally { 
+			if (input != null){
+				try { 
+					input.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	public static String getUser (){
+		return user; 
+	}
+	
 	public static void main(String args[]){
 		Provider server = new Provider();
+		server.setProperties();
 		while(true){
 			server.run();
 		}

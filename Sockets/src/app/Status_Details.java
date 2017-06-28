@@ -7,7 +7,10 @@ public class Status_Details {
 	private int valid_lz;
 	 
 	 public Status_Details(int id){
-		 this.connection_id = id;
+		 connection_id = id;
+		 successful = 0;
+		 lz_permission = 0;
+		 valid_lz = 0;
 	 }
 	 
 	 public void setSuccess(int success){
@@ -31,5 +34,10 @@ public class Status_Details {
 	 }
 	 public int getID(){
 		 return connection_id;
+	 }
+	 
+	 public void print_status (){
+		 System.out.println("Connection " + connection_id + ": Successful: " + successful + ", permission: " 
+				 + lz_permission + ", valid_lz: " + valid_lz);
 	 }
 }
