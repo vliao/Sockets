@@ -3,21 +3,20 @@ import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import socket.Provider;
+import socket.SourceServer;
 import java.util.List;
-
 import java.util.Date;
 
 public class SFTPMonitoringTool {
 	private Connection conn;
-	private PreparedStatement s;
+	private PreparedStatement ps;
 	private ResultSet res;
 	
 	
 	public void inputTest(int comp){ 
 		List<LZ_Details> testList = new ArrayList<LZ_Details>();
 		Status_Details result = null;
-		String user = Provider.getUser();
+		String user = SourceServer.getUser();
 		String url="jdbc:mysql://172.17.119.160:3306/kpccmt_db";
 		//select the rows matching your given component id and the source_name of the server (ie user) this service is being run by
 		String query= "SELECT * FROM connections WHERE component_id=" +comp + " AND source_name=\"" + user +"\"";
@@ -26,9 +25,10 @@ public class SFTPMonitoringTool {
 			Class.forName("com.mysql.jdbc.Driver"); 
 			conn=DriverManager.getConnection(url,"shagent", "kpccmt");
 			System.out.println("connected to the list DB");
-			s=conn.prepareStatement(query); 
-			res=s.executeQuery();
+			ps=conn.prepareStatement(query); 
+			res=ps.executeQuery();
 			while (res.next()){
+				//turn each result (ie connection row) into an lz object
 				LZ_Details a = new LZ_Details(res);
 				testList.add(a);
 			} 
@@ -47,11 +47,12 @@ public class SFTPMonitoringTool {
 			disconnectDB();
 		}
 	}
+	
 	public Status_Details test_connection(LZ_Details lz){
 		Status_Details test_result = new Status_Details(lz.getConnID());
-		ToolManager tm=null;
+		TestManager tm=null;
 		//create a tool manager for each lz object
-		tm = new ToolManager(lz);
+		tm = new TestManager(lz);
 		//Test for valid server, test ssh connection
 		if (tm.ping_target()){
 			//SSH or SSH2 protocol 
@@ -60,7 +61,7 @@ public class SFTPMonitoringTool {
 				System.out.println("successful ssh? " + test_result.getSuccess());
 			}
 			
-			//sftp transfer tests
+			//sftp or sftp2
 			else if (lz.getType().contains("sftp")){
 				test_result = tm.SFTPTransferValidation();
 				System.out.println("SFTPTransferTest: " + test_result.getSuccess());
@@ -75,14 +76,14 @@ public class SFTPMonitoringTool {
 		return test_result;
 	}
 	
-	public void update_connection(Status_Details sd){//updates but doesn't handle the case that the connection is not already in the table
-		String time = now();
+	//updates if the connection is already in the table, if not, does nothing. 
+	public void update_connection(Status_Details sd){		String time = now();
 		String update_stmt = "UPDATE connection_statuses set successful=" + sd.getSuccess() +", lz_permission=" + sd.getPerm() + ", valid_lz=" 
 				+ sd.getLZ() +", updated_at=" + time + " WHERE connection_id=" + sd.getID();
 		System.out.println(update_stmt+"\n");
 		try { 
-			s=conn.prepareStatement(update_stmt);
-			s.executeUpdate();
+			ps=conn.prepareStatement(update_stmt);
+			ps.executeUpdate();
 		}
 		catch (SQLException e){
 			System.out.println(e.getMessage());
@@ -104,9 +105,9 @@ public class SFTPMonitoringTool {
 				System.out.println(e.getMessage());
 			}
 		}
-		if (s!=null){
+		if (ps!=null){
 			try {
-				s.close();
+				ps.close();
 			} catch (SQLException e) {
 				System.out.println(e.getMessage());
 			}
